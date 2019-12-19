@@ -63,13 +63,20 @@ svg rect.harp {
   stroke:black;
 }
 
+/* <!-- Sky chord chart: a table with rounded edges and thick edges (PNG only) --> */
+svg rect.harp-png {
+  fill:white;
+  stroke-width:3;
+  stroke:black;
+}
+
 
 /* <!-- WARNING: The td font size affects the note size! (HTML only)--> */
 td {
   padding-top: 0px;
   padding-bottom: 0px;
   margin: 0px;
-  font-size: 0.5em;
+  font-size: 1.0em;
 }
 
 /* <!-- Makes the table disappear in case of broken chord  (HTML only)--> */

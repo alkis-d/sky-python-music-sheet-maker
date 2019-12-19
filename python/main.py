@@ -3,65 +3,73 @@ from modes import InputModes, RenderModes, CSSModes
 from parsers import Parser
 from songs import Song
 import os
+import re
 
-### Define Errors
-#class Error(Exception):
-#    """Base class for exceptions in this module."""
-#    pass
 def ask_for_mode(modes):
 
     mydict = {}
     i = 0
     print('Please choose your note format:\n')
-    if InputModes.SKYKEYBOARD in modes:
-        i += 1
-        print(str(i) + ') ' + InputModes.SKYKEYBOARD.value[2] + '\n   ' + myparser.keyboard_layout.replace(' ','\n   ') + ':')
-        mydict[i] = InputModes.SKYKEYBOARD
-    if InputModes.SKY in modes:
-        i += 1
-        print(str(i) + ') ' + InputModes.SKY.value[2])
-        mydict[i] = InputModes.SKY
-    if InputModes.WESTERN in modes:
-        i += 1
-        print(str(i) + ') ' + InputModes.WESTERN.value[2])
-        mydict[i] = InputModes.WESTERN
-    if InputModes.JIANPU in modes:
-        i += 1
-        print(str(i) + ') ' + InputModes.JIANPU.value[2])
-        mydict[i] = InputModes.JIANPU
-    if InputModes.WESTERNCHORDS in modes:
-        i += 1
-        print(str(i) + ') ' + InputModes.WESTERNCHORDS.value[2])
-        mydict[i] = InputModes.WESTERNCHORDS
+    for mode in modes:
+       i += 1
+       print(str(i) + ') ' + mode.value[2])
+       if mode == InputModes.SKYKEYBOARD:
+           print('   ' + myparser.get_keyboard_layout().replace(' ','\n   ') + ':')          
+       mydict[i] = mode
     try:
-        song_notation = int(input("Mode (1-" + str(i) + "): ").strip())
+        song_notation = int(input('Mode (1-' + str(i) + "): ").strip())
         mode = mydict[song_notation]
     except (ValueError, KeyError):
         mode = InputModes.SKY
     return mode
 
-
-def is_file(string):
-    isfile = False
+def load_file(string):
+    '''
+    if string is a file name, loads the file, else return None
+    '''
     fp = os.path.join(SONG_DIR_IN, os.path.normpath(string))
     isfile = os.path.isfile(fp)
 
+    #Assumes that user has forgotten extension
     if not(isfile):
         fp = os.path.join(SONG_DIR_IN, os.path.normpath(string+'.txt'))
         isfile = os.path.isfile(fp)
 
     if not(isfile):
-        fp = os.path.join(os.path.normpath(string))
-        isfile = os.path.isfile(fp)
-
-    if not(isfile):
+        fp = None
         splitted = os.path.splitext(string)
-        if len(splitted[0])>0 and len(splitted[1])>2 and len(splitted[1])<=5: #then probably a file name
-            while not(isfile) and len(fp)>2:
+        if len(splitted[0])>0 and len(splitted[1])>2 and len(splitted[1])<=5 and re.search('\\.',splitted[0])==None: #then probably a file name
+            while fp==None:
                 print('\nFile not found.')
-                isfile, fp = is_file(input('File name (in ' + os.path.normpath(SONG_DIR_IN) + '/): ').strip())
+                fp = load_file(input('File name (in ' + os.path.normpath(SONG_DIR_IN) + '/): ').strip())
+                isfile = os.path.isfile(fp)        
+    if isfile:
+        return fp
+    else:
+        return None
 
-    return isfile, fp
+
+def read_lines(fp=None):
+	'''
+     Read song lines in fp, or asks the user to type each line in the console
+	'''
+	song_lines = []
+	if fp != None:
+	    try:
+	        for song_line in open(fp,mode='r', encoding='utf-8', errors='ignore'):
+	            song_lines.append(song_line)
+	    except (OSError, IOError) as err:
+	         print('Error opening file.')
+	         raise err
+	    print('(Song imported from ' + os.path.abspath(fp)+')')
+	else:
+	    song_line = first_line
+	    while song_line:
+	        song_line = song_line.split(os.linesep)
+	        for line in song_line:
+	            song_lines.append(line)
+	        song_line = input('Type next line: ')
+	return song_lines
 
 # Parameters that can be changed by advanced users
 QUAVER_DELIMITER = '-' # Dash-separated list of chords
@@ -73,7 +81,8 @@ SONG_DIR_IN = 'songs'
 SONG_DIR_OUT = 'songs'
 CSS_PATH = 'css/main.css'
 CSS_MODE = CSSModes.EMBED
-ENABLED_MODES = [RenderModes.HTML, RenderModes.SVG, RenderModes.PNG, RenderModes.SKYASCII, RenderModes.JIANPUASCII, RenderModes.WESTERNASCII]
+ENABLED_MODES = [mode for mode in RenderModes]
+#ENABLED_MODES = [RenderModes.HTML, RenderModes.SVG, RenderModes.PNG, RenderModes.SKYASCII, RenderModes.JIANPUASCII, RenderModes.WESTERNASCII, RenderModes.MIDI]
 
 myparser = Parser() # Create a parser object
 
@@ -84,44 +93,26 @@ if not os.path.isdir(SONG_DIR_OUT):
     os.mkdir(SONG_DIR_OUT)
 
 ### MAIN SCRIPT
-
 print('===== VISUAL MUSIC SHEETS FOR SKY:CHILDREN OF THE LIGHT =====')
 print('\nAccepted music notes formats:')
-print('\n* ' + InputModes.SKYKEYBOARD.value[2] + '\n   ' + myparser.keyboard_layout.replace(' ','\n   '))
-print('\n* ' + InputModes.SKY.value[2])
-print('\n* ' + InputModes.WESTERN.value[2])
-print('\n* ' + InputModes.JIANPU.value[2])
-print('\n* ' + InputModes.WESTERNCHORDS.value[2])
+for mode in InputModes:
+    print('\n* ' + mode.value[2])
+    if mode == InputModes.SKYKEYBOARD:
+        print('   ' + myparser.get_keyboard_layout().replace(' ','\n   ') + ':')          
 print('\nNotes composing a chord must be glued together (e.g. A1B1C1).')
 print('Separate chords with \"' + ICON_DELIMITER + '\".')
 print('Use \"' + PAUSE + '\" for a silence (rest).')
 print('Use \"' + QUAVER_DELIMITER + '\" to link notes within an icon, for triplets, quavers... (e.g. A1' + QUAVER_DELIMITER + 'B1' + QUAVER_DELIMITER + 'C1).')
 print('Add ' + REPEAT_INDICATOR + '2 after a chord to indicate repetition.')
-print('Sharps # and flats b (semitones) are not supported in Sky.')
+print('Sharps # and flats b (semitones) are not yet supported.')
 print('============================================================')
 
 
 first_line = input('Type or copy-paste notes, or enter file name (in ' + os.path.normpath(SONG_DIR_IN) + '/): ').strip()
 
-isfile, fp = is_file(first_line)
+fp = load_file(first_line) #loads file or asks for next line
 
-song_lines = []
-if isfile:
-    try:
-        for song_line in open(fp,mode='r', encoding='utf-8', errors='ignore'):
-            song_lines.append(song_line)
-    except (OSError, IOError) as err:
-         print('Error opening file.')
-         raise err
-    print('(Song imported from ' + os.path.abspath(fp)+')')
-else:
-    song_line = first_line
-    while song_line:
-        song_line = song_line.split(os.linesep)
-        for line in song_line:
-            song_lines.append(line)
-        song_line = input('Type next line: ')
-
+song_lines = read_lines(fp)
 
 possible_modes = myparser.detect_input_type(song_lines, ICON_DELIMITER, PAUSE, QUAVER_DELIMITER, COMMENT_DELIMITER, REPEAT_INDICATOR)
 
@@ -135,19 +126,32 @@ else:
     print('\nWe detected that you use the following notation: ' + possible_modes[0].value[1] + '.')
     song_notation = possible_modes[0]
 
-if song_notation == 'JIANPU' and QUAVER_DELIMITER =='-':
+
+if song_notation == InputModes.JIANPU and QUAVER_DELIMITER =='-':
     print('\nWarning: quaver delimiter \'-\' is incompatible with Jianpu notation. Please use \'^\' instead.')
     QUAVER_DELIMITER = '^'
 
+if song_notation == InputModes.JIANPU and PAUSE !='0':
+    print('\nWarning: pause in Jianpu is usually ''0''.')
+    PAUSE = '0'
+
 # Attempts to detect key for input written in absolute musical scales (western, Jianpu)
 musickeys  = []
+song_key = None
 if song_notation in [InputModes.WESTERN, InputModes.JIANPU]:
     musickeys = myparser.find_key(song_lines, COMMENT_DELIMITER, song_notation)
     if len(musickeys) == 0:
         print("\nYour song cannot be transposed exactly in Sky.")
+        print("\nDefault key will be set to C.")
+        song_key = 'C'
+    elif len(musickeys) == 1:
+        song_key = str(musickeys[0])
+        print("\nYour song can be transposed in Sky with the following key: " + song_key)
     else:
-        print("\nYour song can be transposed in Sky with the following keys: " + str(musickeys))
-        print('Transposition is not implemented yet. Assuming you will play in \'C\'.')
+        print("\nYour song can be transposed in Sky with the following keys: " + ', '.join(musickeys))
+        song_key = ''
+        while song_key not in musickeys:
+            song_key = str(input('Choose your key:'))
 
 if song_notation in [InputModes.WESTERN, InputModes.JIANPU, InputModes.WESTERNCHORDS]:
     try:
@@ -184,7 +188,7 @@ if song_title=='':
 original_artists = input('Original artist(s): ')
 transcript_writer = input('Transcribed by: ')
 
-# Renders the song
+#===== Renders the song
 mysong.set_title(song_title)
 mysong.set_headers(original_artists, transcript_writer, musical_key)
 
@@ -230,6 +234,6 @@ if RenderModes.WESTERNASCII in ENABLED_MODES:
         western_ascii_path = mysong.write_ascii(western_ascii_path, RenderModes.WESTERNASCII)
         if western_ascii_path != '':
             print('--------------------------------------------------')
-            print('Your song in TXT converted to Western notation is located at:', western_ascii_path)
+            print('Your song in TXT converted to Western notation with C key is located at:', western_ascii_path)
 
 os.chdir(mycwd)

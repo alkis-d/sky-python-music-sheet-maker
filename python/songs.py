@@ -1,8 +1,13 @@
 from modes import RenderModes, CSSModes
 import instruments
 import os
-from PIL import Image, ImageDraw, ImageFont
 
+try:
+    from PIL import Image, ImageDraw, ImageFont
+    no_PIL_module = False
+except (ImportError,ModuleNotFoundError):
+    no_PIL_module = True
+    
 class Song():
 
     def __init__(self):
@@ -29,24 +34,26 @@ class Song():
         self.SVG_harp_size = (SVG_harp_width, max(minDim, SVG_harp_width / self.harp_AspectRatio) )
         self.SVG_harp_spacings = (self.harp_relspacings[0]*SVG_harp_width, self.harp_relspacings[1]*SVG_harp_width/self.harp_AspectRatio)
 
-        self.png_size = (1334*2, 750*2) # must be an integer tuple
-        self.png_margins = (13, 7)
-        self.png_harp_size0 = instruments.Harp().render_in_png().size #A tuple
-        self.png_harp_spacings0 = (int(self.harp_relspacings[0]*self.png_harp_size0[0]), int(self.harp_relspacings[1]*self.png_harp_size0[1]))
-        self.png_harp_size = None
-        self.png_harp_spacings = None
-        self.png_line_width = int(self.png_size[0] - self.png_margins[0])        #self.png_lyric_relheight = instruments.Voice().lyric_relheight
-        self.png_lyric_size0 = (self.png_harp_size0[0], instruments.Voice().get_lyric_height())
-        self.png_lyric_size = None
-        self.png_dpi = (96*2, 96*2)
-        self.png_compress = 6
-        self.font_color = (0, 0, 0)
-        self.png_color = (255, 255, 255)
-        #self.font_color = (0, 0, 0)   #Discord colors
-		#self.png_color = (54, 57, 63)    #Discord colors
-        self.png_font_size = 36
-        self.png_title_font_size = 48
-        self.png_font = 'fonts/NotoSansCJKjp-Regular.otf'
+
+        if no_PIL_module == False:
+            self.png_size = (1334*2, 750*2) # must be an integer tuple
+            self.png_margins = (13, 7)
+            self.png_harp_size0 = instruments.Harp().render_in_png().size #A tuple
+            self.png_harp_spacings0 = (int(self.harp_relspacings[0]*self.png_harp_size0[0]), int(self.harp_relspacings[1]*self.png_harp_size0[1]))
+            self.png_harp_size = None
+            self.png_harp_spacings = None
+            self.png_line_width = int(self.png_size[0] - self.png_margins[0])        #self.png_lyric_relheight = instruments.Voice().lyric_relheight
+            self.png_lyric_size0 = (self.png_harp_size0[0], instruments.Voice().get_lyric_height())
+            self.png_lyric_size = None
+            self.png_dpi = (96*2, 96*2)
+            self.png_compress = 6
+            self.font_color = (0, 0, 0)
+            self.png_color = (255, 255, 255)
+            #self.font_color = (0, 0, 0)   #Discord colors
+    		#self.png_color = (54, 57, 63)    #Discord colors
+            self.png_font_size = 36
+            self.png_title_font_size = 48
+            self.png_font = 'fonts/NotoSansCJKjp-Regular.otf'
 
 
     def add_line(self, line):
@@ -377,7 +384,7 @@ class Song():
                 instrument_render = instrument.render_in_svg(x, '%.2f'%(100.0*self.SVG_harp_size[0]/self.SVG_line_width)+'%', '100%', self.harp_AspectRatio)
 
                 # REPEAT
-                if instrument.get_repeat()>0:
+                if instrument.get_repeat()>1:
                     instrument_render += '\n<svg x=\"' + '%.2f'%(x+self.SVG_harp_size[0]) + '\" y=\"0%\" class=\"repeat\" width=\"' + '%.2f'%(100.0*self.SVG_harp_size[0]/self.SVG_line_width)+'%' + '\" height=\"100%\">'
                     instrument_render += '\n<text x=\"2%\" y=\"98%\" class=\"repeat\">x' + str(instrument.get_repeat()) + '</text></svg>'
                     x += self.SVG_harp_spacings[0]
@@ -401,7 +408,13 @@ class Song():
         return filenum, file_path
 
     def write_png(self, file_path0, start_row=0, filenum=0):
-
+        global no_PIL_module
+        
+        if no_PIL_module == True:
+            print('\n**** WARNING: PNG was not rendered because PIL module was not found. ****\n')
+            return 0,''
+        
+        
         def trans_paste(bg, fg, box=(0,0)):
             if fg.mode == 'RGBA':
                 if bg.mode != 'RGBA':
@@ -539,7 +552,7 @@ class Song():
                 x += self.png_harp_size[0]
 
                 # REPEAT
-                if instrument.get_repeat()>0:
+                if instrument.get_repeat()>1:
                     repeat_im = instrument.get_repeat_png(self.png_harp_spacings[0], harp_rescale)
                     line_render = trans_paste(line_render, repeat_im, (int(x),int(y+self.png_harp_size[1]-repeat_im.size[1])))
                     x += max(repeat_im.size[0], self.png_harp_spacings[0])

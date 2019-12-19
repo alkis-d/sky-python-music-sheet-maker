@@ -106,6 +106,9 @@ class Parser:
     def get_keyboard_position_map(self):
         return self.keyboard_position_map
 
+    def get_keyboard_layout(self):
+        return self.keyboard_layout
+    
     def get_sky_position_map(self):
         return self.sky_position_map
 
@@ -137,7 +140,7 @@ class Parser:
             repeat = int(re.split(re.escape(repeat_indicator), chord)[1])
             chord = re.split(re.escape(repeat_indicator), chord)[0]
         except:
-            repeat = 0
+            repeat = 1
 
         chord = chord.upper()
 
@@ -164,7 +167,7 @@ class Parser:
 
         for line in song_lines:
             line = line.strip()
-            re.sub(re.escape(icon_delimiter)+'{2,'+str(max(2,len(line)))+'}',icon_delimiter,line)#removes surnumerous spaces
+            line = re.sub(re.escape(icon_delimiter)+'{2,'+str(max(2,len(line)))+'}',icon_delimiter,line)#removes surnumerous spaces
             if len(line) > 0:
                 if line[0] != comment_delimiter:
                     icons=line.split(icon_delimiter)
@@ -244,7 +247,7 @@ class Parser:
         '''
         instrument_line = []
         line = line.strip()
-        re.sub(re.escape(icon_delimiter)+'{2,'+str(max(2,len(line)))+'}',icon_delimiter,line)#removes surnumerous spaces
+        line = re.sub(re.escape(icon_delimiter)+'{2,'+str(max(2,len(line)))+'}',icon_delimiter,line)#removes surnumerous spaces
         if len(line)>0:
             if line[0] == comment_delimiter:
                 lyrics = line.split(comment_delimiter)
